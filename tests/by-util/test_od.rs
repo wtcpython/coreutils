@@ -1434,6 +1434,36 @@ fn test_od_strings_with_n_flag() {
         .stdout_only("0000000 foo\n0000004 bar\n");
 }
 
+#[test]
+fn test_skip_bytes_too_large() {
+    new_ucmd!()
+        .arg("-j11626525626624126226")
+        .pipe_in("hello\n")
+        .fails_with_code(1)
+        .no_stdout()
+        .stderr_only("od: -j argument '11626525626624126226' too large\n");
+}
+
+#[test]
+fn test_strings_too_large() {
+    new_ucmd!()
+        .arg("-S11626525626624126226")
+        .pipe_in("hello\n")
+        .fails_with_code(1)
+        .no_stdout()
+        .stderr_only("od: -S argument '11626525626624126226' too large\n");
+}
+
+#[test]
+fn test_skip_bytes_intmax_accepted() {
+    new_ucmd!()
+        .arg("-j9223372036854775807")
+        .pipe_in("")
+        .fails()
+        .no_stdout()
+        .stderr_contains("tried to skip past end of input");
+}
+
 #[cfg(all(feature = "feat_diagnostics", not(wasi_runner)))]
 mod diagnostics {
     use super::*;

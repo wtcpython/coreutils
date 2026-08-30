@@ -89,21 +89,30 @@ fn parse_bytes_option(
 ) -> UResult<Option<u64>> {
     match matches.get_one::<String>(option_name) {
         None => Ok(None),
-        Some(s) => match parse_number_of_bytes(s) {
-            Ok(n) => Ok(Some(n)),
-            Err(e) => {
-                let message =
-                    format_error_message(&e, s, &option_display_name(args, option_name, short));
-                let option = OptionValue::with_names(s.clone(), short, Some(option_name));
-                Err(e.size_value_error(
-                    diag_args,
-                    &option,
-                    0,
-                    &message,
-                    USimpleError::new(1, message.clone()),
-                ))
+        Some(s) => {
+            let parsed = parse_number_of_bytes(s).and_then(|n| {
+                if n > i64::MAX as u64 {
+                    Err(ParseSizeError::SizeTooBig(s.clone()))
+                } else {
+                    Ok(n)
+                }
+            });
+            match parsed {
+                Ok(n) => Ok(Some(n)),
+                Err(e) => {
+                    let message =
+                        format_error_message(&e, s, &option_display_name(args, option_name, short));
+                    let option = OptionValue::with_names(s.clone(), short, Some(option_name));
+                    Err(e.size_value_error(
+                        diag_args,
+                        &option,
+                        0,
+                        &message,
+                        USimpleError::new(1, message.clone()),
+                    ))
+                }
             }
-        },
+        }
     }
 }
 
