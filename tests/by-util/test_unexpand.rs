@@ -329,6 +329,17 @@ fn test_extended_tabstop_increment_overflow() {
 }
 
 #[test]
+fn test_plain_overlarge_tabstop_rejected() {
+    // A plain `--tabs=N` value above isize::MAX must be rejected at parse time,
+    // matching GNU's up-front rejection.
+    let arg = format!("--tabs={}", usize::MAX);
+    new_ucmd!()
+        .arg(arg)
+        .fails()
+        .stderr_contains("tab stop value is too large");
+}
+
+#[test]
 fn test_is_directory() {
     let (at, mut ucmd) = at_and_ucmd!();
     let dir_name = "dir";

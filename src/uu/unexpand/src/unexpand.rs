@@ -18,6 +18,7 @@ use uucore::translate;
 use uucore::{format_usage, show};
 
 const DEFAULT_TABSTOP: usize = 8;
+const MAX_TAB_STOP: usize = isize::MAX as usize;
 
 #[derive(Debug, Error)]
 enum ParseError {
@@ -35,8 +36,15 @@ impl UError for ParseError {}
 
 fn parse_tab_num(word: &str, allow_zero: bool) -> Result<usize, ParseError> {
     match word.parse::<usize>() {
-        Ok(0) if !allow_zero => Err(ParseError::TabSizeCannotBeZero),
-        Ok(num) => Ok(num),
+        Ok(num) => {
+            if num == 0 && !allow_zero {
+                return Err(ParseError::TabSizeCannotBeZero);
+            }
+            if num > MAX_TAB_STOP {
+                return Err(ParseError::TabSizeTooLarge);
+            }
+            Ok(num)
+        }
         Err(e) => match e.kind() {
             IntErrorKind::PosOverflow => Err(ParseError::TabSizeTooLarge),
             _ => Err(ParseError::InvalidCharacter(
@@ -375,12 +383,17 @@ fn write_tabs(
     // We never turn a single space before a non-blank into
     // a tab, unless it's at the start of the line.
     let ai = print_state.leading || amode;
-    if (ai && print_state.pctype != CharType::Tab && print_state.col > print_state.scol + 1)
+    if (ai
+        && print_state.pctype != CharType::Tab
+        && print_state.col > print_state.scol
+        && print_state.col - print_state.scol > 1)
         || (print_state.col > print_state.scol
             && (print_state.leading || ai && print_state.pctype == CharType::Tab))
     {
         while let Some(nts) = next_tabstop(tab_config, print_state.scol) {
-            let target = print_state.scol + nts;
+            let Some(target) = print_state.scol.checked_add(nts) else {
+                break;
+            };
             if print_state.col < target {
                 break;
             }
