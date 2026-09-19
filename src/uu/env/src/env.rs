@@ -1024,11 +1024,8 @@ fn make_options<'a>(
 
 fn apply_unset_env_vars(opts: &Options<'_>) -> Result<(), Box<dyn UError>> {
     for name in &opts.unsets {
-        let native_name = NativeStr::new(name);
-        if name.is_empty()
-            || native_name.contains('\0').unwrap()
-            || native_name.contains('=').unwrap()
-        {
+        let bytes = name.as_encoded_bytes();
+        if name.is_empty() || bytes.contains(&b'\0') || bytes.contains(&b'=') {
             return Err(USimpleError::new(
                 125,
                 translate!("env-error-cannot-unset-invalid", "name" => name.quote()),

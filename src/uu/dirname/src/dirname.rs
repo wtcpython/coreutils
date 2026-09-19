@@ -6,8 +6,6 @@
 use clap::{Arg, ArgAction, Command};
 use std::ffi::OsString;
 use std::io::{Write as _, stdout};
-#[cfg(unix)]
-use uucore::display::print_verbatim;
 use uucore::error::{UResult, UUsageError};
 use uucore::format_usage;
 use uucore::line_ending::LineEnding;
@@ -169,22 +167,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         let path_bytes = uucore::os_str_as_bytes(path.as_os_str()).unwrap_or(&[]);
         let result = dirname_string_manipulation(path_bytes);
 
-        #[cfg(unix)]
-        {
-            use std::os::unix::ffi::OsStrExt;
-            let result_os = std::ffi::OsStr::from_bytes(result);
-            print_verbatim(result_os)?;
-        }
-        #[cfg(not(unix))]
-        {
-            // On non-Unix, fall back to lossy conversion
-            if let Ok(s) = std::str::from_utf8(result) {
-                write!(stdout(), "{s}")?;
-            } else {
-                // Fallback for non-UTF-8 paths on non-Unix systems
-                write!(stdout(), ".")?;
-            }
-        }
+        stdout().write_all(result)?;
 
         write!(stdout(), "{line_ending}")?;
     }

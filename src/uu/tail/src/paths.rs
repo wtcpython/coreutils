@@ -22,18 +22,6 @@ pub enum InputKind {
     Stdin,
 }
 
-#[cfg(unix)]
-impl From<&OsStr> for InputKind {
-    fn from(value: &OsStr) -> Self {
-        if value == OsStr::new("-") {
-            Self::Stdin
-        } else {
-            Self::File(PathBuf::from(value))
-        }
-    }
-}
-
-#[cfg(not(unix))]
 impl From<&OsStr> for InputKind {
     fn from(value: &OsStr) -> Self {
         if value == OsStr::new(text::DASH) {
